@@ -1,4 +1,20 @@
+#!/bin/bash
 #Generate React Native apk
+
+##### Versions
+# 7/07/2021 v1.0 - JL - version inital
+# 20/09/2021 v2.0 - JL - add functions : init_keystore, make_react_native_bundle, update
+# ----------------------------------------------------------------------
+# List of functions
+# init_folders : Check/Delete "signing_config" and Check/Create "assets" folder
+# ini_remove_drawable_raw : Check/Delete "drawable-*" and "raw"
+# init_gradlew : Execute different gradlew task
+# init_apk : Generate debug or apk file
+# init_keystore : Generate keystore, update gradle.properties and build.gradle
+# make_react_native_bundle : Generate react native bundle
+# update : Update Gradlew version
+# ----------------------------------------------------------------------
+
 
 echo "=========================================================="
 echo "=========================================================="
@@ -12,8 +28,21 @@ echo "----------------------------------------------------------"
 #read -p "Set react native folder : " user_input
 
 #get pwd output && assign to variable
+KEYTOOL=$JAVA_HOME\\bin\\keytool.exe
 HOME_FOLDER=$(pwd)
-echo $HOME_FOLDER
+APP_NAME=iinventaire
+APP_VERSION=1.0
+APK_NAME=$APP_NAME-$APP_VERSION
+KEYSTORE_FILE_NAME=release-$APP_NAME-key.jks
+KEYSTORE_FILE=$HOME_FOLDER/android/app/$KEYSTORE_FILE_NAME
+
+
+echo React Native home folder : $HOME_FOLDER
+echo Java home folder : $JAVA_HOME
+echo Keytool home folder : $KEYTOOL
+echo Keystore path : $KEYSTORE_FILE
+
+#rm -f $KEYSTORE_FILE
 
 
 #####
@@ -40,28 +69,70 @@ init_folders(){
 	fi
 }
 
-init_gradlew(){
-	# 2- Generate react native bundle
+make_react_native_bundle(){
 	echo Go to $HOME_FOLDER...
 	cd $HOME_FOLDER
 
 	echo Generate react native bundle...
 	react-native bundle --platform android --dev false --entry-file index.js --bundle-output $HOME_FOLDER/android/app/src/main/assets/index.android.bundle --assets-dest $HOME_FOLDER/android/app/src/main/res 
 
+}
 
-	# 3- Execute gradlew :
-	echo Stop gradlew...
-	cd android
-	./gradlew --stop
-
-
-	echo Clean gradlew...
-	./gradlew clean
-
-
-	echo Clean app gradlew...
-	./gradlew clean app:assembleRelease -x bundleReleaseJsAndAssets
-
+init_keystore(){
+	
+	case $1 in
+		make)
+			# check if keystore exist, if not make it
+			if [ -f "$KEYSTORE_FILE" ];
+				then
+					echo $KEYSTORE_FILE exist!
+				else
+					echo $KEYSTORE_FILE does not exist!
+					echo Generate keystore....
+					read -p "Set keystore alias : " KEYSTORE_ALIAS
+					
+					"$KEYTOOL" -genkey -v -keystore $KEYSTORE_FILE -alias $KEYSTORE_ALIAS -keyalg RSA -keysize 2048 -validity 10000
+					
+					init_keystore link
+			fi
+		;;
+		link)
+			echo .......
+			echo Add the information in $HOME_FOLDER/android/gradle.properties
+			echo =======================================================================
+			echo MYAPP_UPLOAD_STORE_FILE=$KEYSTORE_FILE_NAME
+			echo MYAPP_UPLOAD_KEY_ALIAS=$KEYSTORE_ALIAS
+			echo MYAPP_UPLOAD_STORE_PASSWORD=
+			echo MYAPP_UPLOAD_KEY_PASSWORD=
+			echo =======================================================================
+			start notepad "$HOME_FOLDER/android/gradle.properties"
+			read -p 'Press Enter to continue' k
+			
+			
+			echo .......
+			echo Add the information in $HOME_FOLDER/android/app/build.gradle
+			echo In the signingConfigs obj
+			echo After in buildTypes.release obj
+			echo =======================================================================
+			echo release {
+			echo if \(project.hasProperty\('MYAPP_UPLOAD_STORE_FILE'\)\) {
+			echo 		storeFile file\(MYAPP_UPLOAD_STORE_FILE\)
+			echo 		storePassword MYAPP_UPLOAD_STORE_PASSWORD
+			echo  		keyAlias MYAPP_UPLOAD_KEY_ALIAS
+			echo  		keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+			echo  		v2SigningEnabled true
+			echo 	}
+			echo }
+			echo =======================================================================
+			echo signingConfig signingConfigs.release
+			echo =======================================================================
+			start notepad "$HOME_FOLDER/android/app/build.gradle"
+			read -p 'Press Enter to continue' k
+		;;
+		*)
+			echo "init_keystore - Argument '$1' provided is not registered"			
+		;;
+	esac
 }
 
 ini_remove_drawable_raw(){
@@ -116,8 +187,74 @@ ini_remove_drawable_raw(){
 	
 }
 
-android_studio_build(){
-	echo need to configure android studio gradle
+init_gradlew(){
+	echo Go to $HOME_FOLDER/android...
+	cd $HOME_FOLDER/android
+	
+	case $1 in
+		build)
+			echo "Stoping gradlew...."
+			./gradlew --stop
+		;;
+		clean)
+			echo ".Cleaning gradlew..."
+			./gradlew clean
+		;;
+		*)
+			echo "init_gradlew - Argument '$1' provided is not registered"			
+		;;
+	esac
+}
+
+init_apk(){
+
+	case $1 in
+		debug)
+			echo Go to $HOME_FOLDER/android...
+			cd $HOME_FOLDER/android
+			./gradlew assembleDebug
+			
+			if [ -f $HOME_FOLDER/android/app/build/outputs/apk/debug/app-debug.apk ]; 
+				then 
+					cp -p $HOME_FOLDER/android/app/build/outputs/apk/debug/app-debug.apk $HOME_FOLDER/android/app/build/outputs/apk/debug/$APK_NAME-debug.apk
+					rm -f $HOME_FOLDER/android/app/build/outputs/apk/debug/app-debug.apk
+					echo Debug apk created at $HOME_FOLDER/android/app/build/outputs/apk/debug/$APK_NAME-debug.apk
+				else 
+					echo Debug apk not created!
+			fi
+		;;
+		release)
+			echo Go to $HOME_FOLDER/android...
+			cd $HOME_FOLDER/android
+			./gradlew assembleRelease
+			
+			if [ -f $HOME_FOLDER/android/app/build/outputs/apk/release/app-release.apk ]; 
+				then 
+					cp -p $HOME_FOLDER/android/app/build/outputs/apk/release/app-release.apk $HOME_FOLDER/android/app/build/outputs/apk/release/$APK_NAME-release.apk
+					rm -f $HOME_FOLDER/android/app/build/outputs/apk/release/app-release.apk
+					echo Release apk created at $HOME_FOLDER/android/app/build/outputs/apk/release/$APK_NAME-release.apk
+				else 
+					echo Release apk not created!
+			fi
+		;;
+		*)
+			echo "init_apk - Argument '$1' provided is not registered"			
+		;;
+	esac
+
+		
+		
+}
+
+update(){
+	echo Go to $HOME_FOLDER/android...
+	cd $HOME_FOLDER/android
+	
+	echo Current version...
+	./gradlew --version
+	echo Updating to $1...
+	./gradlew wrapper --gradle-version $1
+	./gradlew --version
 }
 #####
 # Main body of functions ends here
@@ -127,13 +264,43 @@ android_studio_build(){
 # Main body of script starts here
 #####
 
-init_folders
+# Check if generation is debug or release 
+if [ "$*" == "" ];
+	then
+		echo "Main - No arguments provided"
+		exit
+fi
 
-init_gradlew
-
-ini_remove_drawable_raw
-
-android_studio_build
+case $1 in
+	update)
+		update $2
+	;;
+	debug)
+		echo "Generating Debug APK"
+		
+		init_gradlew clean
+		init_gradlew build
+		init_folders
+		make_react_native_bundle
+		 
+		init_apk debug
+	;;
+	release)
+		echo "Generating Release APK....."
+		
+		init_keystore make
+		#init_keystore link
+		init_folders
+		init_gradlew clean
+		init_gradlew build
+		ini_remove_drawable_raw 
+		init_apk release
+	;;
+	*)
+		echo "Main - Argument '$1' provided is not registered"
+		exit
+	;;
+esac
 
 read -p "Done!" xxx
 
