@@ -30,19 +30,20 @@ echo "----------------------------------------------------------"
 #get pwd output && assign to variable
 KEYTOOL=$JAVA_HOME\\bin\\keytool.exe
 HOME_FOLDER=$(pwd)
-APP_NAME=iinventaire
-APP_VERSION=1.0
+read -p "App Name ? => " APP_NAME
+read -p "App Version ? => " APP_VERSION
 APK_NAME=$APP_NAME-$APP_VERSION
 KEYSTORE_FILE_NAME=release-$APP_NAME-key.jks
 KEYSTORE_FILE=$HOME_FOLDER/android/app/$KEYSTORE_FILE_NAME
 
 
+echo App Name : $APP_NAME
+echo App Version : $APP_VERSION
 echo React Native home folder : $HOME_FOLDER
 echo Java home folder : $JAVA_HOME
 echo Keytool home folder : $KEYTOOL
 echo Keystore path : $KEYSTORE_FILE
-
-#rm -f $KEYSTORE_FILE
+echo "----------------------------------------------------------"
 
 
 #####

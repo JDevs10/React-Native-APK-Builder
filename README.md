@@ -22,6 +22,11 @@ Build release apk :
 $ cd /c/WorkPlace/MyReactNativeHome
 $ ./build-react-native.sh release
 ```
+Add basic app and version information, the console will ask you at the begging : 
+```sh
+$ App Name ? => iStock
+$ App Version ? => 1.2.11
+```
 
 ###### version 1.2.16 (10/2021 - Paris)
 ###### Developped by JDevs
