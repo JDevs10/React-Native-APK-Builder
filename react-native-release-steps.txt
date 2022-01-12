@@ -1,0 +1,50 @@
+###########################################################################
+---------------------------------------------------------------------------
+
+1-Delete:
+android\app\build\intermediates\
+
+signing_config\release\out\
+
+---------------------------------------------------------------------------
+
+2-Execute commande on app directory :
+react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+
+---------------------------------------------------------------------------
+
+3-Execute commande on /android directory :
+./gradlew --stop
+
+./gradlew clean
+
+./gradlew clean app:assembleRelease -x bundleReleaseJsAndAssets
+
+cd android && ./gradlew --stop && ./gradlew clean && ./gradlew clean app:assembleRelease -x bundleReleaseJsAndAssets
+
+---------------------------------------------------------------------------
+full cmd
+react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res && cd android && ./gradlew --stop && ./gradlew clean && ./gradlew clean app:assembleRelease -x bundleReleaseJsAndAssets
+---------------------------------------------------------------------------
+
+4-Clean /drawable-* and /raw On :
+android\app\src\main\res
+
+---------------------------------------------------------------------------
+
+5-Lunch android studio:
+sync files
+sync gradle
+clean
+rebuild
+generate signed apk
+
+---------------------------------------------------------------------------
+###########################################################################
+
+
+gradlew --stop
+
+gradlew assembleRelease -x bundleReleaseJsAndAssets
+
+app:mergeReleaseNativeLibs
