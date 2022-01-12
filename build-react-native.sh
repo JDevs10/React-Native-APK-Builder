@@ -14,7 +14,8 @@
 # make_react_native_bundle : Generate react native bundle
 # update : Update Gradlew version
 # ----------------------------------------------------------------------
-
+SH_VERSION=v2.0
+# ----------------------------------------------------------------------
 
 echo "=========================================================="
 echo "=========================================================="
@@ -25,30 +26,32 @@ echo "----------------------------------------------------------"
 # Set Gobal variables
 #####
 
-#read -p "Set react native folder : " user_input
-
-#get pwd output && assign to variable
 KEYTOOL=$JAVA_HOME\\bin\\keytool.exe
-HOME_FOLDER=$(pwd)
-read -p "App Name ? => " APP_NAME
-read -p "App Version ? => " APP_VERSION
-APK_NAME=$APP_NAME-$APP_VERSION
-KEYSTORE_FILE_NAME=release-$APP_NAME-key.jks
-KEYSTORE_FILE=$HOME_FOLDER/android/app/$KEYSTORE_FILE_NAME
-
-
-echo App Name : $APP_NAME
-echo App Version : $APP_VERSION
-echo React Native home folder : $HOME_FOLDER
-echo Java home folder : $JAVA_HOME
-echo Keytool home folder : $KEYTOOL
-echo Keystore path : $KEYSTORE_FILE
-echo "----------------------------------------------------------"
-
+HOME_FOLDER=$(pwd)	#get pwd output && assign to variable
 
 #####
-# Main body of functions starts here
+# End Gobal variables
 #####
+
+#region Main body of functions starts here
+init_app_info(){
+	#read -p "Set react native folder : " user_input
+	read -p "App Name ? => " APP_NAME
+	read -p "App Version ? => " APP_VERSION
+	APK_NAME=$APP_NAME-$APP_VERSION
+	KEYSTORE_FILE_NAME=release-$APP_NAME-key.jks
+	KEYSTORE_FILE=$HOME_FOLDER/android/app/$KEYSTORE_FILE_NAME
+
+
+	echo App Name : $APP_NAME
+	echo App Version : $APP_VERSION
+	echo React Native home folder : $HOME_FOLDER
+	echo Java home folder : $JAVA_HOME
+	echo Keytool home folder : $KEYTOOL
+	echo Keystore path : $KEYSTORE_FILE
+	echo "----------------------------------------------------------"
+}
+
 init_folders(){
 	# check if log directory does not exist
 	if [ ! -d $HOME_FOLDER/android/app/build/intermediates/signing_config ];
@@ -193,13 +196,17 @@ init_gradlew(){
 	cd $HOME_FOLDER/android
 	
 	case $1 in
-		build)
+		stop)
 			echo "Stoping gradlew...."
 			./gradlew --stop
 		;;
 		clean)
 			echo ".Cleaning gradlew..."
 			./gradlew clean
+		;;
+		clean_assembleRelease)
+			echo ".Cleaning app assembleRelease..."
+			./gradlew clean app:assembleRelease -x bundleReleaseJsAndAssets
 		;;
 		*)
 			echo "init_gradlew - Argument '$1' provided is not registered"			
@@ -248,6 +255,11 @@ init_apk(){
 }
 
 update(){
+	if [ ! -d "$HOME_FOLDER" ];
+		then
+			read -p "Set react native app home folder : " HOME_FOLDER
+	fi
+
 	echo Go to $HOME_FOLDER/android...
 	cd $HOME_FOLDER/android
 	
@@ -257,15 +269,12 @@ update(){
 	./gradlew wrapper --gradle-version $1
 	./gradlew --version
 }
-#####
-# Main body of functions ends here
-#####
+#endregion of functions ends here
 
-#####
-# Main body of script starts here
-#####
 
-# Check if generation is debug or release 
+#region Main body of script starts here
+
+# Check if there are arguments 
 if [ "$*" == "" ];
 	then
 		echo "Main - No arguments provided"
@@ -273,27 +282,33 @@ if [ "$*" == "" ];
 fi
 
 case $1 in
+	version)
+		echo "Current script version $SH_VERSION"
+	;;
 	update)
 		update $2
 	;;
 	debug)
+		init_app_info
+
 		echo "Generating Debug APK"
-		
+		init_gradlew stop
 		init_gradlew clean
-		init_gradlew build
 		init_folders
 		make_react_native_bundle
 		 
 		init_apk debug
 	;;
 	release)
+		init_app_info
+
 		echo "Generating Release APK....."
-		
 		init_keystore make
 		#init_keystore link
 		init_folders
+		init_gradlew stop
 		init_gradlew clean
-		init_gradlew build
+		init_gradlew clean_assembleRelease
 		ini_remove_drawable_raw 
 		init_apk release
 	;;
@@ -302,9 +317,5 @@ case $1 in
 		exit
 	;;
 esac
-
-read -p "Done!" xxx
-
-#####
-# Main body of script ends here
-#####
+exit
+#endregion Main body of script ends here
